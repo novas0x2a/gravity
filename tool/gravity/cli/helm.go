@@ -181,8 +181,8 @@ func releaseInstall(env *localenv.LocalEnvironment, conf releaseInstallConfig) e
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	env.EmitAuditEvent(events.AppInstalled, events.FieldsForRelease(*release))
-	env.PrintStep("Installed release %v", release.Name)
+	env.EmitAuditEvent(events.AppInstalled, events.FieldsForRelease(release))
+	env.PrintStep("Installed release %v", release.GetName())
 	return nil
 }
 
@@ -206,12 +206,12 @@ func releaseList(env *localenv.LocalEnvironment, all bool) error {
 	fmt.Fprintf(w, "-------\t------\t-----\t--------\t---------\t-------\n")
 	for _, r := range releases {
 		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\t%v\n",
-			r.Name,
-			r.Status,
+			r.GetName(),
+			r.GetStatus(),
 			r.GetChart(),
-			r.Revision,
-			r.Namespace,
-			r.Updated.Format(constants.HumanDateFormatSeconds))
+			r.GetRevision(),
+			r.GetMetadata().Namespace,
+			r.GetUpdated().Format(constants.HumanDateFormatSeconds))
 	}
 	w.Flush()
 	return nil
@@ -257,7 +257,7 @@ func releaseUpgrade(env *localenv.LocalEnvironment, conf releaseUpgradeConfig) e
 		return trace.Wrap(err)
 	}
 	env.PrintStep("Upgrading release %v (%v) to version %v",
-		release.Name, release.GetChart(),
+		release.GetName(), release.GetChart(),
 		imageEnv.Manifest.Metadata.ResourceVersion)
 	tmp, err := ioutil.TempDir("", "")
 	if err != nil {
@@ -269,7 +269,7 @@ func releaseUpgrade(env *localenv.LocalEnvironment, conf releaseUpgradeConfig) e
 		return trace.Wrap(err)
 	}
 	release, err = helmClient.Upgrade(helm.UpgradeParameters{
-		Release: release.Name,
+		Release: release.GetName(),
 		Path:    filepath.Join(tmp, "resources"),
 		Values:  conf.Files,
 		Set:     conf.Values,
@@ -277,8 +277,8 @@ func releaseUpgrade(env *localenv.LocalEnvironment, conf releaseUpgradeConfig) e
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	env.EmitAuditEvent(events.AppUpgraded, events.FieldsForRelease(*release))
-	env.PrintStep("Upgraded release %v to version %v", release.Name,
+	env.EmitAuditEvent(events.AppUpgraded, events.FieldsForRelease(release))
+	env.PrintStep("Upgraded release %v to version %v", release.GetName(),
 		imageEnv.Manifest.Metadata.ResourceVersion)
 	return nil
 }
@@ -298,8 +298,8 @@ func releaseRollback(env *localenv.LocalEnvironment, conf releaseRollbackConfig)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	env.EmitAuditEvent(events.AppRolledBack, events.FieldsForRelease(*release))
-	env.PrintStep("Rolled back release %v to %v", release.Name, release.GetChart())
+	env.EmitAuditEvent(events.AppRolledBack, events.FieldsForRelease(release))
+	env.PrintStep("Rolled back release %v to %v", release.GetName(), release.GetChart())
 	return nil
 }
 
@@ -315,8 +315,8 @@ func releaseUninstall(env *localenv.LocalEnvironment, conf releaseUninstallConfi
 	if err != nil {
 		return trace.Wrap(err)
 	}
-	env.EmitAuditEvent(events.AppUninstalled, events.FieldsForRelease(*release))
-	env.PrintStep("Uninstalled release %v", release.Name)
+	env.EmitAuditEvent(events.AppUninstalled, events.FieldsForRelease(release))
+	env.PrintStep("Uninstalled release %v", release.GetName())
 	return nil
 }
 
@@ -338,11 +338,11 @@ func releaseHistory(env *localenv.LocalEnvironment, conf releaseHistoryConfig) e
 	fmt.Fprintf(w, "--------\t-----\t------\t-------\t-----------\n")
 	for _, r := range releases {
 		fmt.Fprintf(w, "%v\t%v\t%v\t%v\t%v\n",
-			r.Revision,
+			r.GetRevision(),
 			r.GetChart(),
-			r.Status,
-			r.Updated.Format(constants.HumanDateFormatSeconds),
-			r.Description)
+			r.GetStatus(),
+			r.GetUpdated().Format(constants.HumanDateFormatSeconds),
+			r.GetMetadata().Description)
 	}
 	w.Flush()
 	return nil

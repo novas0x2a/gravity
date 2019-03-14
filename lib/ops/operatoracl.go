@@ -1038,6 +1038,16 @@ func (o *OperatorACL) GetAuthGateway(key SiteKey) (storage.AuthGateway, error) {
 	return o.operator.GetAuthGateway(key)
 }
 
+// ListReleases returns all currently installed application releases in a cluster.
+func (o *OperatorACL) ListReleases(key SiteKey) ([]storage.Release, error) {
+	// TODO: Implement more granular ACL: check permissions to read apps
+	// and filter out releases in namespaces user doesn't have access to
+	if err := o.ClusterAction(key.SiteDomain, storage.KindCluster, teleservices.VerbRead); err != nil {
+		return nil, trace.Wrap(err)
+	}
+	return o.operator.ListReleases(key)
+}
+
 // EmitAuditEvent saves the provided event in the audit log.
 func (o *OperatorACL) EmitAuditEvent(req AuditEventRequest) error {
 	if err := o.ClusterAction(req.SiteDomain, storage.KindCluster, teleservices.VerbUpdate); err != nil {
