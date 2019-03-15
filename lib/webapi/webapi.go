@@ -276,6 +276,9 @@ func NewAPI(cfg Config) (*Handler, error) {
 	h.GET("/apps/:repository/:package/:version", h.needsAuth(h.getAppPackage))
 	h.GET("/apps/:repository/:package/:version/installer", h.needsAuth(h.getAppInstaller))
 
+	// Releases
+	h.GET("/sites/:domain/releases", h.needsAuth(h.getReleases))
+
 	// User
 	h.GET("/user/context", h.needsAuth(h.getWebContext))
 	h.GET("/user/status", h.needsAuth(h.getUserStatus))
@@ -2030,6 +2033,58 @@ func (m *Handler) updateRetentionPolicy(w http.ResponseWriter, r *http.Request, 
 		}
 	}
 	return httplib.OK(), nil
+}
+
+/* getReleases returns all application releases currently deployed in a cluster.
+
+     GET /portalapi/v1/sites/:domain/releases
+
+   Success response:
+
+     []webRelease
+*/
+func (m *Handler) getReleases(w http.ResponseWriter, r *http.Request, p httprouter.Params, context *AuthContext) (interface{}, error) {
+	releases, err := context.Operator.ListReleases(ops.SiteKey{
+		SiteDomain: p[0].Value,
+		AccountID:  context.User.GetAccountID(),
+	})
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	result := make([]webRelease, 0, len(releases))
+	for _, release := range releases {
+		result = append(result, webRelease{
+			Name:         release.GetName(),
+			Namespace:    release.GetMetadata().Namespace,
+			Description:  release.GetMetadata().Description,
+			ChartName:    release.GetChartName(),
+			ChartVersion: release.GetChartVersion(),
+			AppVersion:   release.GetAppVersion(),
+			Status:       release.GetStatus(),
+			Updated:      release.GetUpdated(),
+		})
+	}
+	return result, nil
+}
+
+// webRelease is an application release object for web app.
+type webRelease struct {
+	// Name is the release name.
+	Name string
+	// Namespace is the namespace where release is deployed.
+	Namespace string
+	// Description is the application description.
+	Description string
+	// ChartName is the name of the release chart.
+	ChartName string
+	// ChartVersion is the version of the release chart.
+	ChartVersion string
+	// AppVersion is the optional application version.
+	AppVersion string
+	// Status is the release status.
+	Status string
+	// Updated is when the release was last updated.
+	Updated time.Time
 }
 
 // updateRetentionInput is the input for "update retention policy" API call

@@ -43,5 +43,7 @@ func (o *Operator) ListReleases(key ops.SiteKey) ([]storage.Release, error) {
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+	// TODO: Fetch release endpoints as well when support for application
+	// manifest is added to application images.
 	return releases, nil
 }

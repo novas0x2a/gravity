@@ -21,8 +21,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gravitational/gravity/lib/loc"
-
 	"github.com/gravitational/teleport/lib/services"
 	teleservices "github.com/gravitational/teleport/lib/services"
 	teleutils "github.com/gravitational/teleport/lib/utils"
@@ -36,8 +34,9 @@ type Release interface {
 	// Resource is the base resource.
 	services.Resource
 	GetChartName() string
-	GetChartVersion() loc.Locator
+	GetChartVersion() string
 	GetChart() string
+	GetAppVersion() string
 	GetStatus() string
 	GetRevision() int
 	GetUpdated() time.Time
@@ -46,10 +45,6 @@ type Release interface {
 // NewRelease creates a new release resource from the provided Helm release.
 func NewRelease(release *release.Release) (Release, error) {
 	md := release.GetChart().GetMetadata()
-	chartVersion, err := loc.ParseLocator(md.GetVersion())
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
 	return &ReleaseV1{
 		Kind:    KindRelease,
 		Version: services.V1,
@@ -60,7 +55,7 @@ func NewRelease(release *release.Release) (Release, error) {
 		},
 		Spec: ReleaseSpecV1{
 			ChartName:    md.GetName(),
-			ChartVersion: *chartVersion,
+			ChartVersion: md.GetVersion(),
 			AppVersion:   md.GetAppVersion(),
 		},
 		Status: ReleaseStatusV1{
@@ -80,9 +75,9 @@ type ReleaseV1 struct {
 }
 
 type ReleaseSpecV1 struct {
-	ChartName    string      `json:"chart_name"`
-	ChartVersion loc.Locator `json:"chart_version"`
-	AppVersion   string      `json:"app_version"`
+	ChartName    string `json:"chart_name"`
+	ChartVersion string `json:"chart_version"`
+	AppVersion   string `json:"app_version"`
 }
 
 type ReleaseStatusV1 struct {
@@ -95,12 +90,16 @@ func (r *ReleaseV1) GetChartName() string {
 	return r.Spec.ChartName
 }
 
-func (r *ReleaseV1) GetChartVersion() loc.Locator {
+func (r *ReleaseV1) GetChartVersion() string {
 	return r.Spec.ChartVersion
 }
 
 func (r *ReleaseV1) GetChart() string {
 	return fmt.Sprintf("%s-%s", r.Spec.ChartName, r.Spec.ChartVersion)
+}
+
+func (r *ReleaseV1) GetAppVersion() string {
+	return r.Spec.AppVersion
 }
 
 func (r *ReleaseV1) GetStatus() string {
